@@ -15,22 +15,43 @@ public class TicTacToeService {
 
     private String authKey;
 
+    /**
+     *
+     * @return
+     */
     public GameResponse createGame() {
         initializeAuthenticationKey();
         return client.createGame(authKey);
     }
 
+    /**
+     *
+     * @param gameId
+     * @return
+     * @throws GameNotFoundException
+     */
     public GameResponse getGame(String gameId) throws GameNotFoundException {
         initializeAuthenticationKey();
         return client.getGame(authKey, gameId);
     }
 
-
+    /**
+     *
+     * @param gameId
+     * @param tile
+     * @param x
+     * @param y
+     * @return
+     * @throws InvalidPlayerMoveException
+     */
     public GameResponse makeMove(String gameId, Tile tile, int x, int y) throws InvalidPlayerMoveException {
         initializeAuthenticationKey();
         return client.makeMove(authKey, gameId, tile, x, y);
     }
 
+    /**
+     *
+     */
     private void initializeAuthenticationKey() {
         if (this.authKey != null) {
             return;

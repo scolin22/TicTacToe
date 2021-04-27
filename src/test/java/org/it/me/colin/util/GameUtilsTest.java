@@ -1,14 +1,16 @@
 package org.it.me.colin.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.it.me.colin.model.Tile;
+import org.it.me.colin.model.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -19,11 +21,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GameUtilsTest {
 
+    private static final List<GameTile> DIAGONAL_X_GAME_BOARD = ImmutableList.of(
+            GameTile.builder().tile(Tile.X).x(0).y(0).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(0).y(1).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(0).y(2).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(1).y(0).build(),
+            GameTile.builder().tile(Tile.X).x(1).y(1).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(1).y(2).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(2).y(0).build(),
+            GameTile.builder().tile(Tile.EMPTY).x(2).y(1).build(),
+            GameTile.builder().tile(Tile.X).x(2).y(2).build());
+    private static final GameResponse DIAGONAL_X_GAME_RESPONSE = GameResponse.builder()
+            .gameId(GAME_ID)
+            .gameBoard(DIAGONAL_X_GAME_BOARD)
+            .status(Status.NONE)
+            .winner(Winner.NONE)
+            .build();
+
     @Test
     void transformTo2dMap_HappyCase_Success() {
         // Setup
         // Execute
-        Map<Integer, Map<Integer, Tile>> actualGameMap = transformGameBoardTo2dMap(GAME_RESPONSE.getGameBoard());
+        Map<Integer, Map<Integer, Tile>> actualGameMap = transformGameBoardTo2dMap(DIAGONAL_X_GAME_RESPONSE.getGameBoard());
 
         // Assert
         assertEquals(GAME_MAP, actualGameMap);
@@ -58,8 +77,7 @@ class GameUtilsTest {
         return Stream.of(
                 Arguments.of("0,0", new ImmutablePair<>(0,0)),
                 Arguments.of("0, 0", new ImmutablePair<>(0,0)),
-                Arguments.of("0,\n0", new ImmutablePair<>(0,0))
-        );
+                Arguments.of("0,\n0", new ImmutablePair<>(0,0)));
     }
 
     @ParameterizedTest
@@ -77,8 +95,7 @@ class GameUtilsTest {
         return Stream.of(
                 Arguments.of(""),
                 Arguments.of("0,0,0"),
-                Arguments.of("0,")
-        );
+                Arguments.of("0,"));
     }
 
     @ParameterizedTest
@@ -88,5 +105,73 @@ class GameUtilsTest {
         // Execute
         // Assert
         assertThrows(IllegalArgumentException.class, () -> parseCoordinates(coordinateInput));
+    }
+
+    private static Stream<Arguments> determinePlayerOrder_GameResponses() {
+        return Stream.of(
+                Arguments.of(GameResponse.builder().status(Status.NONE).build(), ImmutableList.of(Tile.X, Tile.O)),
+                Arguments.of(GameResponse.builder()
+                        .status(Status.ACTIVE)
+                        .gameBoard(ImmutableList.of(
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(2).build())).build(),
+                        ImmutableList.of(Tile.X, Tile.O)),
+                Arguments.of(GameResponse.builder()
+                        .status(Status.ACTIVE)
+                        .gameBoard(ImmutableList.of(
+                                GameTile.builder().tile(Tile.X).x(0).y(0).build(),
+                                GameTile.builder().tile(Tile.O).x(0).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(2).build())).build(),
+                        ImmutableList.of(Tile.X, Tile.O)),
+                Arguments.of(GameResponse.builder()
+                        .status(Status.ACTIVE)
+                        .gameBoard(ImmutableList.of(
+                                GameTile.builder().tile(Tile.X).x(0).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(2).build())).build(),
+                        ImmutableList.of(Tile.O, Tile.X)),
+                Arguments.of(GameResponse.builder()
+                        .status(Status.ACTIVE)
+                        .gameBoard(ImmutableList.of(
+                                GameTile.builder().tile(Tile.O).x(0).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(0).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(1).y(2).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(0).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(1).build(),
+                                GameTile.builder().tile(Tile.EMPTY).x(2).y(2).build())).build(),
+                        ImmutableList.of(Tile.X, Tile.O)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("determinePlayerOrder_GameResponses")
+    void determinePlayerOrder_HappyCase_Success(GameResponse gameResponse, List<Tile> expectedPlayerOrder) {
+        // Setup
+        // Execute
+        List<Tile> actualPlayerOrder = determinePlayerOrder(gameResponse);
+
+        // Assert
+        assertEquals(expectedPlayerOrder, actualPlayerOrder);
     }
 }

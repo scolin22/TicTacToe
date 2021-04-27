@@ -8,13 +8,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.it.me.colin.exception.GameNotFoundException;
 import org.it.me.colin.exception.InvalidPlayerMoveException;
 import org.it.me.colin.model.*;
+import org.it.me.colin.util.GameUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.it.me.colin.constants.GameMessages.*;
 
@@ -82,7 +78,7 @@ public class GameInstance {
         gameRenderer.renderGameBoard(gameResponse.getGameBoard(), BOARD_WIDTH, BOARD_HEIGHT);
 
         // determine first player order
-        List<Tile> players = determinePlayerOrder(gameResponse);
+        List<Tile> players = GameUtils.determinePlayerOrder(gameResponse);
 
         while (!Status.COMPLETE.equals(gameResponse.getStatus())) {
             for (Tile player : players) {
@@ -99,38 +95,6 @@ public class GameInstance {
     }
 
     /**
-     * Returns the player order. If the game is already active then player with the least number of played moves goes
-     * first. However, it's impossible to determine the player order if the played moves are even. If the played moves
-     * is even or if the game has not started, then order is random.
-     * @param gameResponse The current game state.
-     * @return The players in playing order.
-     */
-    private List<Tile> determinePlayerOrder(GameResponse gameResponse) {
-        log.info("Determining player order.");
-        if (Status.ACTIVE.equals(gameResponse.getStatus())) {
-            // Count frequency of each tile
-            Map<Tile, Long> tileToCounts = gameResponse.getGameBoard().stream()
-                    .map(GameTile::getTile)
-                    .filter(Tile.EMPTY::equals)
-                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-            // If player moves are not even then player with least moves goes first
-            long xFrequency = tileToCounts.getOrDefault(Tile.X, 0L);
-            long oFrequency = tileToCounts.getOrDefault(Tile.O, 0L);
-            if (xFrequency != oFrequency) {
-                return tileToCounts.entrySet().stream()
-                        .sorted(Map.Entry.<Tile, Long>comparingByValue().reversed())
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
-            }
-        }
-
-        List<Tile> players = Arrays.asList(Tile.X, Tile.O);
-        Collections.shuffle(players);
-        return players;
-    }
-
-    /**
      * Prompts for a move from the current player and makes the move. If an valid move is made, then prompt for another
      * move until a valid move is made.
      * @param gameResponse The current game state.
@@ -142,9 +106,9 @@ public class GameInstance {
         while (true) {
             gameRenderer.renderGameMessage(String.format(PLAYER_MOVE_MESSAGE, player));
             try {
-                // TODO: Validate coordinates because out of bound moves will crash the server
                 Pair<Integer, Integer> coordinates = gameInputter.getPlayerMove();
                 log.info(String.format("Player \"%s\" played at x: %s y: %s", player, coordinates.getLeft(), coordinates.getRight()));
+                validateMove(coordinates.getLeft(), coordinates.getRight());
                 return service.makeMove(gameId, player, coordinates.getLeft(), coordinates.getRight());
             } catch (InvalidPlayerMoveException | IllegalArgumentException e) {
                 log.info(String.format("Player \"%s\" played an invalid move.", player));
@@ -170,5 +134,11 @@ public class GameInstance {
         }
 
         return false;
+    }
+
+    private void validateMove(Integer x, Integer y) {
+        if (x < 0 || x >= BOARD_WIDTH | y < 0 || y >= BOARD_HEIGHT) {
+            throw new InvalidPlayerMoveException("Players move is out of bounds.");
+        }
     }
 }

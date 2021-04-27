@@ -1,15 +1,20 @@
 package org.it.me.colin.util;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.it.me.colin.constants.GameMessages;
+import org.it.me.colin.model.GameResponse;
 import org.it.me.colin.model.GameTile;
+import org.it.me.colin.model.Status;
 import org.it.me.colin.model.Tile;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class GameUtils {
 
@@ -102,5 +107,36 @@ public class GameUtils {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format(GameMessages.INVALID_COORDINATE_NON_INTEGER_MESSAGE, input));
         }
+    }
+
+    /**
+     * Returns the player order. If the game is already active then player with the least number of played moves goes
+     * first. However, it's impossible to determine the player order if the played moves are even.
+     *
+     * TODO: Server is currently bugged where O can never start regardless of game state.
+     *
+     * @param gameResponse The current game state.
+     * @return The players in playing order.
+     */
+    public static List<Tile> determinePlayerOrder(GameResponse gameResponse) {
+        if (Status.ACTIVE.equals(gameResponse.getStatus())) {
+            // Count frequency of each tile
+            Map<Tile, Long> tileToCounts = gameResponse.getGameBoard().stream()
+                    .map(GameTile::getTile)
+                    .filter(tile -> !Tile.EMPTY.equals(tile))
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+            tileToCounts.putIfAbsent(Tile.X, 0L);
+            tileToCounts.putIfAbsent(Tile.O, 0L);
+
+            // If player moves are not even then player with least moves goes first
+            if (!tileToCounts.get(Tile.X).equals(tileToCounts.get(Tile.O))) {
+                return tileToCounts.entrySet().stream()
+                        .sorted(Map.Entry.comparingByValue())
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+            }
+        }
+
+        return ImmutableList.of(Tile.X, Tile.O);
     }
 }

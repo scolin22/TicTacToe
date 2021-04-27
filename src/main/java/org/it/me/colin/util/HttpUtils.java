@@ -10,7 +10,6 @@ import java.net.http.HttpResponse;
 public class HttpUtils {
 
     /**
-     * TODO:
      * TODO: This would be certainly better handled by using an RPC framework or "HTTP" layer rather than static helper
      * TODO: Using Supplier<HttpResponse<String>> leads to ugly implementation because of checked exceptions
      * @param request

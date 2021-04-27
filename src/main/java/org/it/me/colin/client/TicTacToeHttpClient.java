@@ -10,7 +10,6 @@ import org.it.me.colin.exception.InvalidPlayerMoveException;
 import org.it.me.colin.model.GameResponse;
 import org.it.me.colin.model.Tile;
 import org.it.me.colin.util.HttpUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +26,7 @@ import static org.it.me.colin.constants.TicTacToeServiceConstants.*;
  *
  * TODO: Add retry handler
  * TODO: Abstract away client configuration and use a factory to build clients
+ * TODO: Implement a customer BodyHandlers that can handle JSON to GameResponse marshalling. But not all responses are JSON.
  */
 @Log4j2
 @RequiredArgsConstructor(onConstructor = @__(@Inject))
@@ -37,14 +37,7 @@ public class TicTacToeHttpClient implements TicTacToeClient {
 
     public String getAuthenticationKey() {
         log.debug("Initializing authentication key.");
-        URI uri = UriComponentsBuilder.newInstance()
-                .scheme(DEFAULT_SCHEME)
-                .host(SERVICE_HOST)
-                .port(SERVICE_PORT)
-                .path(AUTH_PATH)
-                .build().toUri();
-
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        HttpRequest request = HttpRequest.newBuilder(GET_AUTHENTICATION_KEY_URI)
                 .GET()
                 .build();
 
@@ -54,52 +47,31 @@ public class TicTacToeHttpClient implements TicTacToeClient {
 
     public boolean validateAuthenticationKey(String authKey) {
         log.debug(String.format("Validating authentication key: %s", authKey));
-        URI uri = UriComponentsBuilder.newInstance()
-                .scheme(DEFAULT_SCHEME)
-                .host(SERVICE_HOST)
-                .port(SERVICE_PORT)
-                .path(ECHO_AUTH_PATH)
-                .build().toUri();
-
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        HttpRequest request = HttpRequest.newBuilder(VALIDATE_AUTHENTICATION_KEY_URI)
                 .header(API_KEY_HEADER, authKey)
                 .GET()
                 .build();
 
         HttpResponse<String> response = HttpUtils.handleHttpResponse(request, httpClient);
-
         return AUTH_SUCCESS_RESPONSE.equals(response.body());
     }
 
     public GameResponse createGame(String authKey) {
         log.debug("Creating game.");
-        URI uri = UriComponentsBuilder.newInstance()
-                .scheme(DEFAULT_SCHEME)
-                .host(SERVICE_HOST)
-                .port(SERVICE_PORT)
-                .path(GAME_PATH)
-                .build().toUri();
-
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        HttpRequest request = HttpRequest.newBuilder(CREATE_GAME_URI)
                 .header(API_KEY_HEADER, authKey)
                 .POST(HttpRequest.BodyPublishers.ofString(""))
                 .build();
 
         HttpResponse<String> response = HttpUtils.handleHttpResponse(request, httpClient);
-
-        // TODO: Implement a customer BodyHandlers that can handle JSON to GameResponse marshalling. But not all responses are JSON.
         return GSON.fromJson(response.body(), GameResponse.class);
     }
 
     public GameResponse getGame(String authKey, String gameId) {
         log.debug(String.format("Getting game with gameId: %s", gameId));
-        URI uri = UriComponentsBuilder.newInstance()
-                .scheme(DEFAULT_SCHEME)
-                .host(SERVICE_HOST)
-                .port(SERVICE_PORT)
+        URI uri = baseUriBuilder()
                 .pathSegment(GAME_PATH, gameId)
                 .build().toUri();
-
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .header(API_KEY_HEADER, authKey)
                 .GET()
@@ -118,10 +90,7 @@ public class TicTacToeHttpClient implements TicTacToeClient {
 
     public GameResponse makeMove(String authKey, String gameId, Tile tile, int x, int y) throws InvalidPlayerMoveException {
         log.debug(String.format("Making move for game with gameId: %s tile: %s x: %s y: %s", gameId, tile, x, y));
-        URI uri = UriComponentsBuilder.newInstance()
-                .scheme(DEFAULT_SCHEME)
-                .host(SERVICE_HOST)
-                .port(SERVICE_PORT)
+        URI uri = baseUriBuilder()
                 .pathSegment(GAME_PATH, gameId, MOVE_PATH)
                 .queryParam(X_PARAM, String.valueOf(x))
                 .queryParam(Y_PARAM, String.valueOf(y))
